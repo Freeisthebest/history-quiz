@@ -1,0 +1,54 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>近代史选择题刷题</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">近代史选择题题库</p>
+        <h1>模拟试卷刷题</h1>
+      </div>
+      <div class="top-actions">
+        <button id="newPaperBtn" class="button secondary" type="button">重新组卷</button>
+        <button id="historyBtn" class="button secondary" type="button">历史错题</button>
+        <button id="submitBtn" class="button primary" type="button">交卷</button>
+      </div>
+    </header>
+
+    <section id="errorBox" class="notice error hidden"></section>
+
+    <main class="exam-layout">
+      <section class="question-column">
+        <div id="summaryBar" class="summary-bar"></div>
+        <article id="questionPanel" class="question-panel"></article>
+        <section id="resultPanel" class="result-panel hidden"></section>
+        <section id="historyPanel" class="history-panel hidden"></section>
+      </section>
+
+      <aside class="answer-sheet" aria-label="答题卡">
+        <div class="sheet-header">
+          <h2>答题卡</h2>
+          <p id="sheetStats"></p>
+        </div>
+        <div id="answerCard" class="answer-card"></div>
+        <div class="legend">
+          <span><i class="dot current"></i>当前</span>
+          <span><i class="dot answered"></i>已答</span>
+          <span><i class="dot correct"></i>正确</span>
+          <span><i class="dot wrong"></i>错误</span>
+          <span><i class="dot unanswered"></i>未答</span>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="quiz-core.js"></script>
+  <script src="questions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
