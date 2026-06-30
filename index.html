@@ -11,7 +11,7 @@
     <header class="topbar">
       <div>
         <p class="eyebrow">近代史选择题题库</p>
-        <h1>模拟试卷刷题</h1>
+        <h1 id="pageTitle">近代史选择题刷题</h1>
       </div>
       <div class="top-actions">
         <button id="examModeBtn" class="button secondary mode-button" type="button">模拟试卷</button>
@@ -24,7 +24,30 @@
 
     <section id="errorBox" class="notice error hidden"></section>
 
-    <main class="exam-layout">
+    <section id="modeSelectPanel" class="mode-select-panel">
+      <div class="mode-select-header">
+        <p class="section-kicker">开始刷题</p>
+        <h2>请选择本次练习方式</h2>
+        <p id="modeSelectStats" class="muted"></p>
+      </div>
+      <div class="mode-grid">
+        <button id="modeExamEntry" class="mode-card exam" type="button" data-start-mode="exam">
+          <span class="mode-card-title">模拟试卷</span>
+          <span class="mode-card-desc">随机抽取 40 道单选、20 道多选，整套答完后统一结算。</span>
+          <span id="modeExamMeta" class="mode-card-meta"></span>
+        </button>
+        <button id="modePracticeEntry" class="mode-card practice" type="button" data-start-mode="practice">
+          <span class="mode-card-title">即时刷题</span>
+          <span class="mode-card-desc">随机抽题，答完一道立刻显示答案，适合逐题练习。</span>
+          <span id="modePracticeMeta" class="mode-card-meta"></span>
+        </button>
+      </div>
+      <div class="mode-select-actions">
+        <button class="button light" type="button" data-action="history">查看历史错题</button>
+      </div>
+    </section>
+
+    <main id="examLayout" class="exam-layout hidden">
       <section class="question-column">
         <div id="summaryBar" class="summary-bar"></div>
         <article id="questionPanel" class="question-panel"></article>

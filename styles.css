@@ -126,6 +126,95 @@ h1 {
   align-items: start;
 }
 
+.mode-select-panel {
+  margin-top: 24px;
+}
+
+.mode-select-header {
+  max-width: 720px;
+}
+
+.section-kicker {
+  margin-bottom: 6px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.mode-select-header h2 {
+  margin-bottom: 8px;
+  font-size: clamp(24px, 4vw, 36px);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.mode-card {
+  display: grid;
+  gap: 10px;
+  min-height: 180px;
+  padding: 22px;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 5px solid var(--brand);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mode-card.practice {
+  border-top-color: var(--accent);
+}
+
+.mode-card:hover {
+  transform: translateY(-2px);
+  border-color: #9bb6d8;
+}
+
+.mode-card.disabled,
+.mode-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.mode-card.disabled:hover,
+.mode-card:disabled:hover {
+  transform: none;
+}
+
+.mode-card-title {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.mode-card-desc {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.mode-card-meta {
+  align-self: end;
+  color: var(--brand-dark);
+  font-weight: 700;
+}
+
+.mode-select-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
 .question-column {
   min-width: 0;
 }
@@ -325,6 +414,10 @@ h1 {
   gap: 8px;
 }
 
+.compact-action {
+  width: 100%;
+}
+
 .practice-stat {
   display: grid;
   gap: 4px;
@@ -494,6 +587,10 @@ h1 {
   }
 
   .exam-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .mode-grid {
     grid-template-columns: 1fr;
   }
 

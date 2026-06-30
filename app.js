@@ -4,13 +4,13 @@
   const STORAGE_KEY = 'historyQuizWrongRecordsV1';
 
   const state = {
-    mode: 'exam',
+    mode: '',
     paper: [],
     answers: {},
     currentIndex: 0,
     submitted: false,
     paperId: '',
-    view: 'quiz',
+    view: 'mode-select',
     practiceQuestion: null,
     practiceAnswer: [],
     practiceSubmitted: false,
@@ -23,6 +23,14 @@
   };
 
   const els = {
+    pageTitle: document.getElementById('pageTitle'),
+    modeSelectPanel: document.getElementById('modeSelectPanel'),
+    modeSelectStats: document.getElementById('modeSelectStats'),
+    modeExamEntry: document.getElementById('modeExamEntry'),
+    modePracticeEntry: document.getElementById('modePracticeEntry'),
+    modeExamMeta: document.getElementById('modeExamMeta'),
+    modePracticeMeta: document.getElementById('modePracticeMeta'),
+    examLayout: document.getElementById('examLayout'),
     errorBox: document.getElementById('errorBox'),
     summaryBar: document.getElementById('summaryBar'),
     questionPanel: document.getElementById('questionPanel'),
@@ -96,6 +104,8 @@
 
   function renderEmpty() {
     const counts = getBankCounts();
+    els.modeSelectPanel.classList.add('hidden');
+    els.examLayout.classList.remove('hidden');
     els.summaryBar.innerHTML = `题库：单选 <strong>${counts.single}</strong> 道，多选 <strong>${counts.multiple}</strong> 道。`;
     els.questionPanel.innerHTML = '<h2>题库数量不足</h2><p>请先补充题库后再开始答题。</p>';
     els.answerCard.innerHTML = '';
@@ -122,7 +132,7 @@
   }
 
   function setView(view) {
-    state.view = view;
+    state.view = view === 'quiz' && !state.mode ? 'mode-select' : view;
     render();
   }
 
@@ -146,6 +156,16 @@
 
   function render() {
     renderShellState();
+    if (state.view === 'mode-select') {
+      renderModeSelect();
+      els.modeSelectPanel.classList.remove('hidden');
+      els.examLayout.classList.add('hidden');
+      els.resultPanel.classList.add('hidden');
+      els.historyPanel.classList.add('hidden');
+      return;
+    }
+    els.modeSelectPanel.classList.add('hidden');
+    els.examLayout.classList.remove('hidden');
     renderSummary();
     renderAnswerCard();
     if (state.view === 'history') {
@@ -163,14 +183,46 @@
   }
 
   function renderShellState() {
+    const isModeSelect = state.view === 'mode-select';
+    const hasMode = Boolean(state.mode);
+    els.pageTitle.textContent = isModeSelect
+      ? '近代史选择题刷题'
+      : state.view === 'history'
+        ? '历史错题'
+        : state.mode === 'practice'
+        ? '即时刷题'
+        : '模拟试卷刷题';
+    els.examModeBtn.classList.toggle('hidden', isModeSelect);
+    els.practiceModeBtn.classList.toggle('hidden', isModeSelect);
+    els.newPaperBtn.classList.toggle('hidden', isModeSelect || !hasMode || state.view === 'history');
+    els.historyBtn.classList.toggle('hidden', isModeSelect);
     els.examModeBtn.classList.toggle('active', state.mode === 'exam');
     els.practiceModeBtn.classList.toggle('active', state.mode === 'practice');
     els.newPaperBtn.textContent = state.mode === 'practice' ? '下一题' : '重新组卷';
-    els.submitBtn.classList.toggle('hidden', state.mode === 'practice');
+    els.submitBtn.classList.toggle('hidden', isModeSelect || !hasMode || state.mode === 'practice' || state.view === 'history');
+  }
+
+  function renderModeSelect() {
+    const counts = getBankCounts();
+    const examReady = counts.single >= SINGLE_COUNT && counts.multiple >= MULTIPLE_COUNT;
+    const practiceReady = counts.single + counts.multiple > 0;
+    els.modeSelectStats.textContent = `题库现有：单选 ${counts.single} 道，多选 ${counts.multiple} 道`;
+    els.modeExamMeta.textContent = examReady ? '可开始模拟' : `需要至少 ${SINGLE_COUNT} 道单选和 ${MULTIPLE_COUNT} 道多选`;
+    els.modePracticeMeta.textContent = practiceReady ? '可开始练习' : '题库为空';
+    els.modeExamEntry.disabled = !examReady;
+    els.modePracticeEntry.disabled = !practiceReady;
+    els.modeExamEntry.classList.toggle('disabled', !examReady);
+    els.modePracticeEntry.classList.toggle('disabled', !practiceReady);
   }
 
   function renderSummary() {
     const counts = getBankCounts();
+    if (!state.mode) {
+      els.summaryBar.innerHTML = `题库：单选 <strong>${counts.single}</strong> 道，多选 <strong>${counts.multiple}</strong> 道。`;
+      els.sheetStats.textContent = '';
+      els.historyBtn.textContent = state.view === 'history' ? '返回选择' : '历史错题';
+      return;
+    }
     if (state.mode === 'practice') {
       const q = state.practiceQuestion;
       els.summaryBar.innerHTML = [
@@ -279,6 +331,13 @@
   }
 
   function renderAnswerCard() {
+    if (!state.mode) {
+      els.sheetTitle.textContent = '刷题模式';
+      els.answerCard.innerHTML = `
+        <button class="button light compact-action" type="button" data-action="mode-select">选择模式</button>
+      `;
+      return;
+    }
     if (state.mode === 'practice') {
       els.sheetTitle.textContent = '刷题统计';
       els.answerCard.innerHTML = `
@@ -340,7 +399,7 @@
         <span class="muted">共 ${records.length} 条记录</span>
       </div>
       <div class="question-actions">
-        <button class="button light" type="button" data-action="back">返回${state.mode === 'practice' ? '刷题' : '试卷'}</button>
+        <button class="button light" type="button" data-action="back">返回${state.mode ? (state.mode === 'practice' ? '刷题' : '试卷') : '选择'}</button>
         <button class="button ghost" type="button" data-action="clear-history">清空错题记录</button>
       </div>
       <div class="history-list">${records.map(renderHistoryCard).join('') || '<p>还没有历史错题。</p>'}</div>
@@ -495,6 +554,12 @@
   }
 
   document.addEventListener('click', (event) => {
+    const startModeButton = event.target.closest('[data-start-mode]');
+    if (startModeButton) {
+      setMode(startModeButton.dataset.startMode);
+      return;
+    }
+
     const optionButton = event.target.closest('[data-option]');
     if (optionButton) {
       chooseOption(optionButton.dataset.option);
@@ -519,7 +584,11 @@
       render();
     }
     if (action === 'history') setView('history');
-    if (action === 'back') setView('quiz');
+    if (action === 'back') setView(state.mode ? 'quiz' : 'mode-select');
+    if (action === 'mode-select') {
+      state.view = 'mode-select';
+      render();
+    }
     if (action === 'new') state.mode === 'practice' ? drawNextPracticeQuestion() : startPaper();
     if (action === 'clear-history') clearWrongHistory();
     if (action === 'practice-submit') submitPracticeAnswer();
@@ -533,5 +602,5 @@
   els.historyBtn.addEventListener('click', () => setView(state.view === 'history' ? 'quiz' : 'history'));
   els.submitBtn.addEventListener('click', submitPaper);
 
-  startPaper();
+  render();
 })();
