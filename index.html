@@ -14,6 +14,8 @@
         <h1>模拟试卷刷题</h1>
       </div>
       <div class="top-actions">
+        <button id="examModeBtn" class="button secondary mode-button" type="button">模拟试卷</button>
+        <button id="practiceModeBtn" class="button secondary mode-button" type="button">即时刷题</button>
         <button id="newPaperBtn" class="button secondary" type="button">重新组卷</button>
         <button id="historyBtn" class="button secondary" type="button">历史错题</button>
         <button id="submitBtn" class="button primary" type="button">交卷</button>
@@ -32,7 +34,7 @@
 
       <aside class="answer-sheet" aria-label="答题卡">
         <div class="sheet-header">
-          <h2>答题卡</h2>
+          <h2 id="sheetTitle">答题卡</h2>
           <p id="sheetStats"></p>
         </div>
         <div id="answerCard" class="answer-card"></div>

@@ -99,6 +99,13 @@ h1 {
   border-color: rgba(255, 255, 255, 0.36);
 }
 
+.button.secondary.active,
+.mode-button.active {
+  color: var(--brand-dark);
+  background: #ffffff;
+  border-color: #ffffff;
+}
+
 .button.light {
   color: var(--brand-dark);
   background: #ffffff;
@@ -259,6 +266,34 @@ h1 {
   margin-top: 20px;
 }
 
+.instant-feedback {
+  display: grid;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.instant-feedback.correct {
+  color: #166534;
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.instant-feedback.wrong {
+  color: #991b1b;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.instant-feedback.unanswered {
+  color: #475569;
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
 .answer-sheet {
   position: sticky;
   top: 14px;
@@ -288,6 +323,26 @@ h1 {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 8px;
+}
+
+.practice-stat {
+  display: grid;
+  gap: 4px;
+  min-height: 58px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-2);
+}
+
+.practice-stat span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.practice-stat strong {
+  font-size: 24px;
+  color: var(--brand-dark);
 }
 
 .card-button {

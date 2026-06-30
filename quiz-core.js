@@ -96,6 +96,27 @@
     }));
   }
 
+  function buildPracticePool(bank) {
+    const single = Array.isArray(bank && bank.single) ? bank.single : [];
+    const multiple = Array.isArray(bank && bank.multiple) ? bank.multiple : [];
+    return single.concat(multiple).map(cloneQuestion);
+  }
+
+  function drawPracticeQuestion(bank, randomFn) {
+    const pool = buildPracticePool(bank);
+    if (!pool.length) {
+      throw new Error('题库为空，无法开始即时刷题');
+    }
+    const rand = randomFn || Math.random;
+    return cloneQuestion(pool[Math.floor(rand() * pool.length)]);
+  }
+
+  function classifyAnswer(question, answer) {
+    const userAnswer = normalizeAnswer(answer);
+    if (!userAnswer.length) return 'unanswered';
+    return answersEqual(userAnswer, question.answer) ? 'correct' : 'wrong';
+  }
+
   return {
     normalizeAnswer,
     answersEqual,
@@ -103,5 +124,8 @@
     createWrongRecord,
     classifyPaper,
     createWrongRecordsForPaper,
+    buildPracticePool,
+    drawPracticeQuestion,
+    classifyAnswer,
   };
 });
