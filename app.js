@@ -36,12 +36,16 @@
     questionPanel: document.getElementById('questionPanel'),
     resultPanel: document.getElementById('resultPanel'),
     historyPanel: document.getElementById('historyPanel'),
+    bankPanel: document.getElementById('bankPanel'),
+    changelogPanel: document.getElementById('changelogPanel'),
     answerCard: document.getElementById('answerCard'),
     sheetTitle: document.getElementById('sheetTitle'),
     sheetStats: document.getElementById('sheetStats'),
     examModeBtn: document.getElementById('examModeBtn'),
     practiceModeBtn: document.getElementById('practiceModeBtn'),
     newPaperBtn: document.getElementById('newPaperBtn'),
+    bankBtn: document.getElementById('bankBtn'),
+    changelogBtn: document.getElementById('changelogBtn'),
     historyBtn: document.getElementById('historyBtn'),
     submitBtn: document.getElementById('submitBtn'),
   };
@@ -113,6 +117,8 @@
     els.sheetStats.textContent = '';
     els.resultPanel.classList.add('hidden');
     els.historyPanel.classList.add('hidden');
+    els.bankPanel.classList.add('hidden');
+    els.changelogPanel.classList.add('hidden');
   }
 
   function currentQuestion() {
@@ -162,6 +168,8 @@
       els.examLayout.classList.add('hidden');
       els.resultPanel.classList.add('hidden');
       els.historyPanel.classList.add('hidden');
+      els.bankPanel.classList.add('hidden');
+      els.changelogPanel.classList.add('hidden');
       return;
     }
     els.modeSelectPanel.classList.add('hidden');
@@ -173,10 +181,32 @@
       els.questionPanel.classList.add('hidden');
       els.resultPanel.classList.add('hidden');
       els.historyPanel.classList.remove('hidden');
+      els.bankPanel.classList.add('hidden');
+      els.changelogPanel.classList.add('hidden');
+      return;
+    }
+    if (state.view === 'bank') {
+      renderQuestionBank();
+      els.questionPanel.classList.add('hidden');
+      els.resultPanel.classList.add('hidden');
+      els.historyPanel.classList.add('hidden');
+      els.bankPanel.classList.remove('hidden');
+      els.changelogPanel.classList.add('hidden');
+      return;
+    }
+    if (state.view === 'changelog') {
+      renderChangelog();
+      els.questionPanel.classList.add('hidden');
+      els.resultPanel.classList.add('hidden');
+      els.historyPanel.classList.add('hidden');
+      els.bankPanel.classList.add('hidden');
+      els.changelogPanel.classList.remove('hidden');
       return;
     }
     els.questionPanel.classList.remove('hidden');
     els.historyPanel.classList.add('hidden');
+    els.bankPanel.classList.add('hidden');
+    els.changelogPanel.classList.add('hidden');
     if (state.mode === 'practice') renderPracticeQuestion();
     else renderExamQuestion();
     renderResultIfNeeded();
@@ -186,20 +216,26 @@
     const isModeSelect = state.view === 'mode-select';
     const hasMode = Boolean(state.mode);
     els.pageTitle.textContent = isModeSelect
-      ? '近代史选择题刷题'
+        ? '近代史选择题刷题'
       : state.view === 'history'
         ? '历史错题'
+        : state.view === 'bank'
+        ? '查看题库'
+        : state.view === 'changelog'
+        ? '更新日志'
         : state.mode === 'practice'
         ? '即时刷题'
         : '模拟试卷刷题';
     els.examModeBtn.classList.toggle('hidden', isModeSelect);
     els.practiceModeBtn.classList.toggle('hidden', isModeSelect);
-    els.newPaperBtn.classList.toggle('hidden', isModeSelect || !hasMode || state.view === 'history');
+    els.newPaperBtn.classList.toggle('hidden', isModeSelect || !hasMode || state.view === 'history' || state.view === 'bank' || state.view === 'changelog');
+    els.bankBtn.classList.toggle('hidden', false);
+    els.changelogBtn.classList.toggle('hidden', false);
     els.historyBtn.classList.toggle('hidden', isModeSelect);
     els.examModeBtn.classList.toggle('active', state.mode === 'exam');
     els.practiceModeBtn.classList.toggle('active', state.mode === 'practice');
     els.newPaperBtn.textContent = state.mode === 'practice' ? '下一题' : '重新组卷';
-    els.submitBtn.classList.toggle('hidden', isModeSelect || !hasMode || state.mode === 'practice' || state.view === 'history');
+    els.submitBtn.classList.toggle('hidden', isModeSelect || !hasMode || state.mode === 'practice' || state.view === 'history' || state.view === 'bank' || state.view === 'changelog');
   }
 
   function renderModeSelect() {
@@ -217,6 +253,22 @@
 
   function renderSummary() {
     const counts = getBankCounts();
+    if (state.view === 'bank') {
+      const answered = allBankQuestions().filter((question) => answerStatusForQuestion(question).status !== 'not-picked').length;
+      els.summaryBar.innerHTML = [
+        `题库：单选 <strong>${counts.single}</strong>，多选 <strong>${counts.multiple}</strong>`,
+        `本次有作答记录：<strong>${answered}</strong> 道`,
+      ].join('<span class="sep">|</span>');
+      els.sheetStats.textContent = `${counts.single + counts.multiple}`;
+      els.historyBtn.textContent = '历史错题';
+      return;
+    }
+    if (state.view === 'changelog') {
+      els.summaryBar.innerHTML = '更新日志：<strong>同步读取 CHANGELOG.md</strong>';
+      els.sheetStats.textContent = '';
+      els.historyBtn.textContent = '历史错题';
+      return;
+    }
     if (!state.mode) {
       els.summaryBar.innerHTML = `题库：单选 <strong>${counts.single}</strong> 道，多选 <strong>${counts.multiple}</strong> 道。`;
       els.sheetStats.textContent = '';
@@ -331,10 +383,29 @@
   }
 
   function renderAnswerCard() {
+    if (state.view === 'bank') {
+      const counts = getBankCounts();
+      els.sheetTitle.textContent = '题库统计';
+      els.answerCard.innerHTML = `
+        <div class="practice-stat"><span>单选</span><strong>${counts.single}</strong></div>
+        <div class="practice-stat"><span>多选</span><strong>${counts.multiple}</strong></div>
+        <div class="practice-stat"><span>总题</span><strong>${counts.single + counts.multiple}</strong></div>
+      `;
+      return;
+    }
+    if (state.view === 'changelog') {
+      els.sheetTitle.textContent = '项目记录';
+      els.answerCard.innerHTML = `
+        <button class="button light compact-action" type="button" data-action="bank">查看题库</button>
+        <button class="button light compact-action" type="button" data-action="mode-select">选择模式</button>
+      `;
+      return;
+    }
     if (!state.mode) {
       els.sheetTitle.textContent = '刷题模式';
       els.answerCard.innerHTML = `
         <button class="button light compact-action" type="button" data-action="mode-select">选择模式</button>
+        <button class="button light compact-action" type="button" data-action="bank">查看题库</button>
       `;
       return;
     }
@@ -403,6 +474,150 @@
         <button class="button ghost" type="button" data-action="clear-history">清空错题记录</button>
       </div>
       <div class="history-list">${records.map(renderHistoryCard).join('') || '<p>还没有历史错题。</p>'}</div>
+    `;
+  }
+
+  function allBankQuestions() {
+    const bank = window.QUESTION_BANK || { single: [], multiple: [] };
+    const single = Array.isArray(bank.single) ? bank.single : [];
+    const multiple = Array.isArray(bank.multiple) ? bank.multiple : [];
+    return single.concat(multiple);
+  }
+
+  function answerStatusForQuestion(question) {
+    if (!question) return { status: 'not-picked', label: '本次未抽到', userAnswer: [] };
+    if (state.mode === 'exam') {
+      const paperQuestion = state.paper.find((item) => item.id === question.id);
+      if (!paperQuestion) return { status: 'not-picked', label: '本次未抽到', userAnswer: [] };
+      const userAnswer = selectedAnswer(paperQuestion);
+      if (!userAnswer.length) return { status: 'unanswered', label: '本次未作答', userAnswer };
+      const isCorrect = window.QuizCore.answersEqual(userAnswer, paperQuestion.answer);
+      return { status: isCorrect ? 'correct' : 'wrong', label: isCorrect ? '本次答对' : '本次答错', userAnswer };
+    }
+    if (state.mode === 'practice' && state.practiceQuestion && state.practiceQuestion.id === question.id) {
+      const userAnswer = selectedAnswer(state.practiceQuestion);
+      if (!state.practiceSubmitted) {
+        return { status: userAnswer.length ? 'answered' : 'unanswered', label: userAnswer.length ? '已选择，未提交' : '当前题未作答', userAnswer };
+      }
+      const status = window.QuizCore.classifyAnswer(state.practiceQuestion, userAnswer);
+      const label = status === 'correct' ? '本题答对' : status === 'wrong' ? '本题答错' : '当前题未作答';
+      return { status, label, userAnswer };
+    }
+    return { status: 'not-picked', label: '本次未抽到', userAnswer: [] };
+  }
+
+  function renderQuestionBank() {
+    const questions = allBankQuestions();
+    const counts = getBankCounts();
+    const answered = questions.filter((question) => answerStatusForQuestion(question).status !== 'not-picked').length;
+    els.bankPanel.innerHTML = `
+      <div class="question-meta">
+        <h2>查看题库</h2>
+        <span class="muted">共 ${questions.length} 道，单选 ${counts.single} 道，多选 ${counts.multiple} 道</span>
+      </div>
+      <div class="question-actions bank-tabs">
+        <button class="button light active-filter" type="button" data-bank-filter="all">全部</button>
+        <button class="button light" type="button" data-bank-filter="single">单选</button>
+        <button class="button light" type="button" data-bank-filter="multiple">多选</button>
+        <button class="button ghost" type="button" data-action="back">返回${state.mode ? (state.mode === 'practice' ? '刷题' : '试卷') : '选择'}</button>
+      </div>
+      <p class="muted">本次有作答记录 ${answered} 道；未抽到的题会显示为“本次未抽到”。</p>
+      <div class="bank-list">${questions.map(renderBankCard).join('')}</div>
+    `;
+  }
+
+  async function renderChangelog() {
+    if (els.changelogPanel.dataset.loaded === 'true') return;
+    els.changelogPanel.dataset.loaded = 'loading';
+    els.changelogPanel.innerHTML = `
+      <div class="question-meta">
+        <h2>更新日志</h2>
+        <span class="muted">正在读取 CHANGELOG.md</span>
+      </div>
+    `;
+    try {
+      const response = await fetch(`CHANGELOG.md?v=${Date.now()}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const markdown = await response.text();
+      els.changelogPanel.dataset.loaded = 'true';
+      els.changelogPanel.innerHTML = `
+        <div class="question-meta">
+          <h2>更新日志</h2>
+          <span class="muted">内容来自 CHANGELOG.md</span>
+        </div>
+        <div class="question-actions">
+          <button class="button ghost" type="button" data-action="back">返回${state.mode ? (state.mode === 'practice' ? '刷题' : '试卷') : '选择'}</button>
+        </div>
+        ${renderChangelogMarkdown(markdown)}
+      `;
+    } catch (error) {
+      els.changelogPanel.dataset.loaded = 'false';
+      els.changelogPanel.innerHTML = `
+        <div class="question-meta">
+          <h2>更新日志</h2>
+          <span class="muted">读取失败</span>
+        </div>
+        <p class="muted">当前浏览器没有读取本地 CHANGELOG.md 的权限。部署到网站或通过本地服务器打开后会自动同步显示。</p>
+        <div class="question-actions">
+          <button class="button ghost" type="button" data-action="back">返回${state.mode ? (state.mode === 'practice' ? '刷题' : '试卷') : '选择'}</button>
+        </div>
+      `;
+    }
+  }
+
+  function renderChangelogMarkdown(markdown) {
+    const sections = [];
+    let current = null;
+    markdown.split(/\r?\n/).forEach((line) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('# 更新日志')) return;
+      if (trimmed.startsWith('## ')) {
+        current = { title: trimmed.replace(/^##\s+/, ''), items: [] };
+        sections.push(current);
+        return;
+      }
+      if (trimmed.startsWith('- ') && current) {
+        current.items.push(trimmed.replace(/^-\s+/, ''));
+      }
+    });
+    if (!sections.length) return '<p class="muted">暂无更新记录。</p>';
+    return `
+      <div class="changelog-list">
+        ${sections.map((section) => `
+          <article class="changelog-card">
+            <h3>${escapeHtml(section.title)}</h3>
+            <ul>
+              ${section.items.map((item) => `<li>${escapeHtml(item)}</li>`).join('') || '<li>暂无记录</li>'}
+            </ul>
+          </article>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function renderBankCard(question, index) {
+    const status = answerStatusForQuestion(question);
+    const typeName = question.type === 'multiple' ? '多选题' : '单选题';
+    const optionHtml = optionEntries(question).map(([label, text]) => {
+      const isCorrect = question.answer.includes(label);
+      const isUserPick = status.userAnswer.includes(label);
+      const classes = ['bank-option'];
+      if (isCorrect) classes.push('correct-answer');
+      if (isUserPick && !isCorrect) classes.push('wrong-answer');
+      if (isUserPick) classes.push('selected');
+      return `<li class="${classes.join(' ')}"><strong>${label}.</strong> ${escapeHtml(text)}</li>`;
+    }).join('');
+    return `
+      <article class="bank-card" data-bank-type="${question.type}">
+        <div class="bank-card-head">
+          <span class="badge ${question.type === 'multiple' ? 'multi' : ''}">${index + 1} · ${typeName}</span>
+          <span class="status-pill ${status.status}">${status.label}</span>
+        </div>
+        <h3>${escapeHtml(question.question)}</h3>
+        <ul class="bank-options">${optionHtml}</ul>
+        <p>正确答案：${formatAnswer(question.answer, question.options)}</p>
+        <p>你的答案：${formatAnswer(status.userAnswer, question.options) || '暂无'}</p>
+      </article>
     `;
   }
 
@@ -584,6 +799,8 @@
       render();
     }
     if (action === 'history') setView('history');
+    if (action === 'bank') setView('bank');
+    if (action === 'changelog') setView('changelog');
     if (action === 'back') setView(state.mode ? 'quiz' : 'mode-select');
     if (action === 'mode-select') {
       state.view = 'mode-select';
@@ -596,9 +813,23 @@
     if (action === 'practice-skip') drawNextPracticeQuestion();
   });
 
+  document.addEventListener('click', (event) => {
+    const filterButton = event.target.closest('[data-bank-filter]');
+    if (!filterButton) return;
+    const filter = filterButton.dataset.bankFilter;
+    document.querySelectorAll('[data-bank-filter]').forEach((button) => {
+      button.classList.toggle('active-filter', button.dataset.bankFilter === filter);
+    });
+    document.querySelectorAll('[data-bank-type]').forEach((card) => {
+      card.classList.toggle('hidden', filter !== 'all' && card.dataset.bankType !== filter);
+    });
+  });
+
   els.examModeBtn.addEventListener('click', () => setMode('exam'));
   els.practiceModeBtn.addEventListener('click', () => setMode('practice'));
   els.newPaperBtn.addEventListener('click', () => (state.mode === 'practice' ? drawNextPracticeQuestion() : startPaper()));
+  els.bankBtn.addEventListener('click', () => setView(state.view === 'bank' ? (state.mode ? 'quiz' : 'mode-select') : 'bank'));
+  els.changelogBtn.addEventListener('click', () => setView(state.view === 'changelog' ? (state.mode ? 'quiz' : 'mode-select') : 'changelog'));
   els.historyBtn.addEventListener('click', () => setView(state.view === 'history' ? 'quiz' : 'history'));
   els.submitBtn.addEventListener('click', submitPaper);
 

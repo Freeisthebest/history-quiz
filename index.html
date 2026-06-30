@@ -17,6 +17,8 @@
         <button id="examModeBtn" class="button secondary mode-button" type="button">模拟试卷</button>
         <button id="practiceModeBtn" class="button secondary mode-button" type="button">即时刷题</button>
         <button id="newPaperBtn" class="button secondary" type="button">重新组卷</button>
+        <button id="bankBtn" class="button secondary" type="button">查看题库</button>
+        <button id="changelogBtn" class="button secondary" type="button">更新日志</button>
         <button id="historyBtn" class="button secondary" type="button">历史错题</button>
         <button id="submitBtn" class="button primary" type="button">交卷</button>
       </div>
@@ -43,6 +45,8 @@
         </button>
       </div>
       <div class="mode-select-actions">
+        <button class="button light" type="button" data-action="bank">查看题库</button>
+        <button class="button light" type="button" data-action="changelog">更新日志</button>
         <button class="button light" type="button" data-action="history">查看历史错题</button>
       </div>
     </section>
@@ -53,6 +57,8 @@
         <article id="questionPanel" class="question-panel"></article>
         <section id="resultPanel" class="result-panel hidden"></section>
         <section id="historyPanel" class="history-panel hidden"></section>
+        <section id="bankPanel" class="bank-panel hidden"></section>
+        <section id="changelogPanel" class="changelog-panel hidden"></section>
       </section>
 
       <aside class="answer-sheet" aria-label="答题卡">
