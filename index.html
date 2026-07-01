@@ -19,6 +19,7 @@
         <button id="practiceModeBtn" class="button secondary mode-button" type="button">即时刷题</button>
         <button id="newPaperBtn" class="button secondary" type="button">重新组卷</button>
         <button id="bankBtn" class="button secondary" type="button">查看题库</button>
+        <button id="markedBtn" class="button secondary" type="button">收藏栏</button>
         <button id="changelogBtn" class="button secondary" type="button">更新日志</button>
         <button id="historyBtn" class="button secondary" type="button">历史错题</button>
         <button id="submitBtn" class="button primary" type="button">交卷</button>
@@ -49,9 +50,15 @@
           <span class="mode-card-desc">从历史错题中去重抽题，答完一道立刻反馈，方便回头巩固。</span>
           <span id="modeWrongMeta" class="mode-card-meta"></span>
         </button>
+        <button id="modeMarkedEntry" class="mode-card marked" type="button" data-action="marked">
+          <span class="mode-card-title">收藏栏</span>
+          <span class="mode-card-desc">把需要重点记忆的题目标记起来，之后集中查看和取消标记。</span>
+          <span id="modeMarkedMeta" class="mode-card-meta"></span>
+        </button>
       </div>
       <div class="mode-select-actions">
         <button class="button light" type="button" data-action="bank">查看题库</button>
+        <button class="button light" type="button" data-action="marked">收藏栏</button>
         <button class="button light" type="button" data-action="changelog">更新日志</button>
         <button class="button light" type="button" data-action="history">查看历史错题</button>
       </div>
@@ -64,6 +71,7 @@
         <section id="resultPanel" class="result-panel hidden"></section>
         <section id="historyPanel" class="history-panel hidden"></section>
         <section id="bankPanel" class="bank-panel hidden"></section>
+        <section id="markedPanel" class="marked-panel hidden"></section>
         <section id="changelogPanel" class="changelog-panel hidden"></section>
       </section>
 

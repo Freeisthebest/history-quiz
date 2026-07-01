@@ -152,7 +152,7 @@ h1 {
 
 .mode-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   margin-top: 18px;
 }
@@ -179,6 +179,10 @@ h1 {
 
 .mode-card.wrong {
   border-top-color: #f59e0b;
+}
+
+.mode-card.marked {
+  border-top-color: var(--success);
 }
 
 .mode-card:hover {
@@ -228,6 +232,7 @@ h1 {
 .result-panel,
 .history-panel,
 .bank-panel,
+.marked-panel,
 .changelog-panel,
 .answer-sheet,
 .notice {
@@ -266,6 +271,7 @@ h1 {
 .result-panel,
 .history-panel,
 .bank-panel,
+.marked-panel,
 .changelog-panel {
   margin-top: 14px;
   padding: 22px;
@@ -547,6 +553,7 @@ h1 {
 .wrong-list,
 .history-list,
 .bank-list,
+.marked-list,
 .changelog-list {
   display: grid;
   gap: 12px;
@@ -555,6 +562,7 @@ h1 {
 
 .review-card,
 .bank-card,
+.marked-card,
 .changelog-card {
   padding: 14px;
   border: 1px solid var(--line);
@@ -751,6 +759,7 @@ h1 {
   .result-panel,
   .history-panel,
   .bank-panel,
+  .marked-panel,
   .changelog-panel {
     padding: 16px;
   }

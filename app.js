@@ -2,6 +2,7 @@
   const SINGLE_COUNT = 40;
   const MULTIPLE_COUNT = 20;
   const STORAGE_KEY = 'historyQuizWrongRecordsV1';
+  const MARKED_STORAGE_KEY = 'historyQuizMarkedRecordsV1';
 
   const state = {
     mode: '',
@@ -33,9 +34,11 @@
     modeExamEntry: document.getElementById('modeExamEntry'),
     modePracticeEntry: document.getElementById('modePracticeEntry'),
     modeWrongEntry: document.getElementById('modeWrongEntry'),
+    modeMarkedEntry: document.getElementById('modeMarkedEntry'),
     modeExamMeta: document.getElementById('modeExamMeta'),
     modePracticeMeta: document.getElementById('modePracticeMeta'),
     modeWrongMeta: document.getElementById('modeWrongMeta'),
+    modeMarkedMeta: document.getElementById('modeMarkedMeta'),
     examLayout: document.getElementById('examLayout'),
     errorBox: document.getElementById('errorBox'),
     summaryBar: document.getElementById('summaryBar'),
@@ -43,6 +46,7 @@
     resultPanel: document.getElementById('resultPanel'),
     historyPanel: document.getElementById('historyPanel'),
     bankPanel: document.getElementById('bankPanel'),
+    markedPanel: document.getElementById('markedPanel'),
     changelogPanel: document.getElementById('changelogPanel'),
     answerCard: document.getElementById('answerCard'),
     sheetTitle: document.getElementById('sheetTitle'),
@@ -52,6 +56,7 @@
     practiceModeBtn: document.getElementById('practiceModeBtn'),
     newPaperBtn: document.getElementById('newPaperBtn'),
     bankBtn: document.getElementById('bankBtn'),
+    markedBtn: document.getElementById('markedBtn'),
     changelogBtn: document.getElementById('changelogBtn'),
     historyBtn: document.getElementById('historyBtn'),
     submitBtn: document.getElementById('submitBtn'),
@@ -82,6 +87,14 @@
   function getWrongPracticeCount() {
     const bank = getWrongPracticeBank();
     return bank.single.length + bank.multiple.length;
+  }
+
+  function getMarkedCount() {
+    return loadMarkedRecords().length;
+  }
+
+  function isPanelView() {
+    return ['history', 'bank', 'marked', 'changelog'].includes(state.view);
   }
 
   function isWrongPractice() {
@@ -148,6 +161,7 @@
   }
 
   function reshufflePracticeQuestions() {
+    if (!confirm(`确定重新洗题吗？这会清空当前题目的选择，并重新打乱${practiceTitle()}。`)) return;
     clearError();
     try {
       state.mode = 'practice';
@@ -173,6 +187,7 @@
     els.resultPanel.classList.add('hidden');
     els.historyPanel.classList.add('hidden');
     els.bankPanel.classList.add('hidden');
+    els.markedPanel.classList.add('hidden');
     els.changelogPanel.classList.add('hidden');
   }
 
@@ -229,6 +244,7 @@
       els.resultPanel.classList.add('hidden');
       els.historyPanel.classList.add('hidden');
       els.bankPanel.classList.add('hidden');
+      els.markedPanel.classList.add('hidden');
       els.changelogPanel.classList.add('hidden');
       return;
     }
@@ -242,6 +258,7 @@
       els.resultPanel.classList.add('hidden');
       els.historyPanel.classList.remove('hidden');
       els.bankPanel.classList.add('hidden');
+      els.markedPanel.classList.add('hidden');
       els.changelogPanel.classList.add('hidden');
       return;
     }
@@ -251,6 +268,17 @@
       els.resultPanel.classList.add('hidden');
       els.historyPanel.classList.add('hidden');
       els.bankPanel.classList.remove('hidden');
+      els.markedPanel.classList.add('hidden');
+      els.changelogPanel.classList.add('hidden');
+      return;
+    }
+    if (state.view === 'marked') {
+      renderMarkedQuestions();
+      els.questionPanel.classList.add('hidden');
+      els.resultPanel.classList.add('hidden');
+      els.historyPanel.classList.add('hidden');
+      els.bankPanel.classList.add('hidden');
+      els.markedPanel.classList.remove('hidden');
       els.changelogPanel.classList.add('hidden');
       return;
     }
@@ -260,12 +288,14 @@
       els.resultPanel.classList.add('hidden');
       els.historyPanel.classList.add('hidden');
       els.bankPanel.classList.add('hidden');
+      els.markedPanel.classList.add('hidden');
       els.changelogPanel.classList.remove('hidden');
       return;
     }
     els.questionPanel.classList.remove('hidden');
     els.historyPanel.classList.add('hidden');
     els.bankPanel.classList.add('hidden');
+    els.markedPanel.classList.add('hidden');
     els.changelogPanel.classList.add('hidden');
     if (state.mode === 'practice') renderPracticeQuestion();
     else renderExamQuestion();
@@ -281,6 +311,8 @@
         ? '历史错题'
         : state.view === 'bank'
         ? '查看题库'
+        : state.view === 'marked'
+        ? '收藏栏'
         : state.view === 'changelog'
         ? '更新日志'
         : state.mode === 'practice'
@@ -289,25 +321,31 @@
     els.homeBtn.classList.toggle('hidden', isModeSelect);
     els.examModeBtn.classList.toggle('hidden', isModeSelect);
     els.practiceModeBtn.classList.toggle('hidden', isModeSelect);
-    els.newPaperBtn.classList.toggle('hidden', isModeSelect || !hasMode || state.view === 'history' || state.view === 'bank' || state.view === 'changelog');
+    els.newPaperBtn.classList.toggle('hidden', isModeSelect || !hasMode || isPanelView());
     els.bankBtn.classList.toggle('hidden', false);
+    els.markedBtn.classList.toggle('hidden', false);
     els.changelogBtn.classList.toggle('hidden', false);
     els.historyBtn.classList.toggle('hidden', isModeSelect);
     els.examModeBtn.classList.toggle('active', state.mode === 'exam');
     els.practiceModeBtn.classList.toggle('active', state.mode === 'practice' && !isWrongPractice());
+    els.bankBtn.classList.toggle('active', state.view === 'bank');
+    els.markedBtn.classList.toggle('active', state.view === 'marked');
+    els.changelogBtn.classList.toggle('active', state.view === 'changelog');
     els.newPaperBtn.textContent = state.mode === 'practice' ? '重新洗题' : '重新组卷';
-    els.submitBtn.classList.toggle('hidden', isModeSelect || !hasMode || state.mode === 'practice' || state.view === 'history' || state.view === 'bank' || state.view === 'changelog');
+    els.submitBtn.classList.toggle('hidden', isModeSelect || !hasMode || state.mode === 'practice' || isPanelView());
   }
 
   function renderModeSelect() {
     const counts = getBankCounts();
     const wrongCount = getWrongPracticeCount();
+    const markedCount = getMarkedCount();
     const examReady = counts.single >= SINGLE_COUNT && counts.multiple >= MULTIPLE_COUNT;
     const practiceReady = counts.single + counts.multiple > 0;
-    els.modeSelectStats.textContent = `题库现有：单选 ${counts.single} 道，多选 ${counts.multiple} 道；历史错题 ${wrongCount} 道`;
+    els.modeSelectStats.textContent = `题库现有：单选 ${counts.single} 道，多选 ${counts.multiple} 道；历史错题 ${wrongCount} 道；收藏 ${markedCount} 道`;
     els.modeExamMeta.textContent = examReady ? '可开始模拟' : `需要至少 ${SINGLE_COUNT} 道单选和 ${MULTIPLE_COUNT} 道多选`;
     els.modePracticeMeta.textContent = practiceReady ? '可开始练习' : '题库为空';
     els.modeWrongMeta.textContent = wrongCount ? `可重练 ${wrongCount} 道` : '暂无错题';
+    els.modeMarkedMeta.textContent = markedCount ? `已标记 ${markedCount} 道` : '暂无收藏';
     els.modeExamEntry.disabled = !examReady;
     els.modePracticeEntry.disabled = !practiceReady;
     els.modeWrongEntry.disabled = wrongCount === 0;
@@ -325,6 +363,16 @@
         `本次有作答记录：<strong>${answered}</strong> 道`,
       ].join('<span class="sep">|</span>');
       els.sheetStats.textContent = `${counts.single + counts.multiple}`;
+      els.historyBtn.textContent = '历史错题';
+      return;
+    }
+    if (state.view === 'marked') {
+      const markedCount = getMarkedCount();
+      els.summaryBar.innerHTML = [
+        `收藏栏：<strong>${markedCount}</strong> 道`,
+        `题库：单选 <strong>${counts.single}</strong>，多选 <strong>${counts.multiple}</strong>`,
+      ].join('<span class="sep">|</span>');
+      els.sheetStats.textContent = `${markedCount}`;
       els.historyBtn.textContent = '历史错题';
       return;
     }
@@ -388,6 +436,7 @@
       actions: `
         <button class="button light" type="button" data-action="prev">上一题</button>
         <button class="button light" type="button" data-action="next">下一题</button>
+        ${renderMarkAction(question)}
         <button class="button ghost" type="button" data-action="clear">清空本题</button>
       `,
     });
@@ -407,12 +456,18 @@
         <span>正确答案：${formatAnswer(question.answer, question.options)}</span>
       </div>
     ` : '';
+    const removeWrongAction = state.practiceSubmitted && isWrongPractice() && status === 'correct' && isQuestionInWrongRecords(question.id)
+      ? '<button class="button light" type="button" data-action="remove-current-wrong">移出错题库</button>'
+      : '';
     const actions = state.practiceSubmitted ? `
       <button class="button primary" type="button" data-action="practice-next">下一题</button>
+      ${removeWrongAction}
+      ${renderMarkAction(question)}
       <button class="button ghost" type="button" data-action="practice-reshuffle">重新洗题</button>
       <button class="button light" type="button" data-action="history">查看历史错题</button>
     ` : `
       ${isMultiple ? '<button class="button primary" type="button" data-action="practice-submit">提交本题</button>' : ''}
+      ${renderMarkAction(question)}
       <button class="button ghost" type="button" data-action="practice-skip">换一题</button>
       <button class="button ghost" type="button" data-action="practice-reshuffle">重新洗题</button>
       <button class="button ghost" type="button" data-action="clear">清空本题</button>
@@ -466,10 +521,20 @@
       `;
       return;
     }
+    if (state.view === 'marked') {
+      els.sheetTitle.textContent = '收藏统计';
+      els.answerCard.innerHTML = `
+        <div class="practice-stat"><span>收藏</span><strong>${getMarkedCount()}</strong></div>
+        <button class="button light compact-action" type="button" data-action="bank">查看题库</button>
+        <button class="button light compact-action" type="button" data-action="history">历史错题</button>
+      `;
+      return;
+    }
     if (state.view === 'changelog') {
       els.sheetTitle.textContent = '项目记录';
       els.answerCard.innerHTML = `
         <button class="button light compact-action" type="button" data-action="bank">查看题库</button>
+        <button class="button light compact-action" type="button" data-action="marked">收藏栏</button>
         <button class="button light compact-action" type="button" data-action="mode-select">选择模式</button>
       `;
       return;
@@ -479,6 +544,7 @@
       els.answerCard.innerHTML = `
         <button class="button light compact-action" type="button" data-action="mode-select">选择模式</button>
         <button class="button light compact-action" type="button" data-action="bank">查看题库</button>
+        <button class="button light compact-action" type="button" data-action="marked">收藏栏</button>
       `;
       return;
     }
@@ -546,9 +612,26 @@
       </div>
       <div class="question-actions">
         <button class="button light" type="button" data-action="back">返回${returnTargetName()}</button>
+        <button class="button light" type="button" data-action="marked">收藏栏</button>
         <button class="button ghost" type="button" data-action="clear-history">清空错题记录</button>
       </div>
       <div class="history-list">${records.map(renderHistoryCard).join('') || '<p>还没有历史错题。</p>'}</div>
+    `;
+  }
+
+  function renderMarkedQuestions() {
+    const records = loadMarkedRecords();
+    els.markedPanel.innerHTML = `
+      <div class="question-meta">
+        <h2>收藏栏</h2>
+        <span class="muted">共 ${records.length} 道已标记题目</span>
+      </div>
+      <div class="question-actions">
+        <button class="button light" type="button" data-action="back">返回${returnTargetName()}</button>
+        <button class="button light" type="button" data-action="bank">查看题库</button>
+        <button class="button light" type="button" data-action="history">历史错题</button>
+      </div>
+      <div class="marked-list">${records.map(renderMarkedCard).join('') || '<p>还没有收藏题目。刷题或查看题库时可以点击“标记题目”。</p>'}</div>
     `;
   }
 
@@ -557,6 +640,34 @@
     const single = Array.isArray(bank.single) ? bank.single : [];
     const multiple = Array.isArray(bank.multiple) ? bank.multiple : [];
     return single.concat(multiple);
+  }
+
+  function findBankQuestionById(questionId) {
+    return allBankQuestions().find((question) => question.id === questionId) || null;
+  }
+
+  function questionForStoredRecord(record) {
+    if (!record) return null;
+    return findBankQuestionById(record.questionId) || window.QuizCore.questionFromStoredRecord(record);
+  }
+
+  function questionForAction(questionId) {
+    if (!questionId) return currentQuestion();
+    const liveQuestion = findBankQuestionById(questionId);
+    if (liveQuestion) return liveQuestion;
+    const markedRecord = loadMarkedRecords().find((record) => record.questionId === questionId);
+    if (markedRecord) return questionForStoredRecord(markedRecord);
+    const wrongRecord = loadWrongRecords().find((record) => record.questionId === questionId);
+    if (wrongRecord) return questionForStoredRecord(wrongRecord);
+    return null;
+  }
+
+  function isQuestionMarked(questionId) {
+    return loadMarkedRecords().some((record) => record.questionId === questionId);
+  }
+
+  function isQuestionInWrongRecords(questionId) {
+    return loadWrongRecords().some((record) => record.questionId === questionId);
   }
 
   function answerStatusForQuestion(question) {
@@ -594,6 +705,7 @@
         <button class="button light active-filter" type="button" data-bank-filter="all">全部</button>
         <button class="button light" type="button" data-bank-filter="single">单选</button>
         <button class="button light" type="button" data-bank-filter="multiple">多选</button>
+        <button class="button light" type="button" data-action="marked">收藏栏</button>
         <button class="button ghost" type="button" data-action="back">返回${returnTargetName()}</button>
       </div>
       <div class="bank-search-row">
@@ -718,8 +830,38 @@
         <ul class="bank-options">${optionHtml}</ul>
         <p>正确答案：${formatAnswer(question.answer, question.options)}</p>
         <p>你的答案：${formatAnswer(status.userAnswer, question.options) || '暂无'}</p>
+        <div class="question-actions">${renderMarkAction(question)}</div>
       </article>
     `;
+  }
+
+  function renderMarkedCard(record) {
+    const question = questionForStoredRecord(record);
+    const typeName = question.type === 'multiple' ? '多选题' : '单选题';
+    const optionHtml = optionEntries(question).map(([label, text]) => {
+      const isCorrect = question.answer.includes(label);
+      const classes = ['bank-option'];
+      if (isCorrect) classes.push('correct-answer');
+      return `<li class="${classes.join(' ')}"><strong>${label}.</strong> ${escapeHtml(text)}</li>`;
+    }).join('');
+    return `
+      <article class="marked-card">
+        <div class="bank-card-head">
+          <span class="badge ${question.type === 'multiple' ? 'multi' : ''}">${typeName}</span>
+          <span class="status-pill answered">标记于 ${formatDate(record.markedAt)}</span>
+        </div>
+        <h3>${escapeHtml(question.question)}</h3>
+        <ul class="bank-options">${optionHtml}</ul>
+        <p>正确答案：${formatAnswer(question.answer, question.options)}</p>
+        <div class="question-actions">${renderMarkAction(question)}</div>
+      </article>
+    `;
+  }
+
+  function renderMarkAction(question) {
+    if (!question || !question.id) return '';
+    const marked = isQuestionMarked(question.id);
+    return `<button class="button ${marked ? 'light' : 'ghost'}" type="button" data-action="toggle-mark" data-question-id="${escapeHtml(question.id)}">${marked ? '取消标记' : '标记题目'}</button>`;
   }
 
   function renderReviewCard(question) {
@@ -728,6 +870,7 @@
         <h3>${escapeHtml(question.question)}</h3>
         <p>你的答案：${formatAnswer(selectedAnswer(question), question.options) || '未作答'}</p>
         <p>正确答案：${formatAnswer(question.answer, question.options)}</p>
+        <div class="question-actions">${renderMarkAction(question)}</div>
       </article>
     `;
   }
@@ -738,17 +881,23 @@
         <h3>${escapeHtml(question.question)}</h3>
         <p>状态：未作答</p>
         <p>正确答案：${formatAnswer(question.answer, question.options)}</p>
+        <div class="question-actions">${renderMarkAction(question)}</div>
       </article>
     `;
   }
 
   function renderHistoryCard(record) {
+    const question = questionForStoredRecord(record);
     return `
       <article class="review-card">
         <h3>${escapeHtml(record.question)}</h3>
         <p>题型：${record.type === 'multiple' ? '多选题' : '单选题'} · 时间：${formatDate(record.answeredAt)}</p>
         <p>你的答案：${formatAnswer(record.userAnswer, record.options) || '未作答'}</p>
         <p>正确答案：${formatAnswer(record.correctAnswer, record.options)}</p>
+        <div class="question-actions">
+          ${renderMarkAction(question)}
+          <button class="button ghost" type="button" data-action="remove-wrong" data-question-id="${escapeHtml(record.questionId)}">移出错题库</button>
+        </div>
       </article>
     `;
   }
@@ -834,7 +983,12 @@
   function saveWrongRecords(records) {
     if (!records.length) return;
     const history = records.concat(loadWrongRecords());
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+    writeWrongRecords(history);
+  }
+
+  function writeWrongRecords(records) {
+    if (records.length) localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    else localStorage.removeItem(STORAGE_KEY);
   }
 
   function loadWrongRecords() {
@@ -846,10 +1000,53 @@
     }
   }
 
+  function removeWrongRecordsByQuestion(questionId) {
+    if (!questionId) return;
+    const records = window.QuizCore.removeRecordsForQuestion(loadWrongRecords(), questionId);
+    writeWrongRecords(records);
+    if (isWrongPractice()) {
+      state.practiceQueue = state.practiceQueue.filter((question) => question.id !== questionId);
+      state.practiceRoundTotal = Math.max(state.practiceRoundIndex, state.practiceRoundIndex + state.practiceQueue.length);
+    }
+    render();
+  }
+
   function clearWrongHistory() {
     if (!confirm('确定清空历史错题记录吗？')) return;
     localStorage.removeItem(STORAGE_KEY);
-    renderHistory();
+    render();
+  }
+
+  function loadMarkedRecords() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(MARKED_STORAGE_KEY) || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function saveMarkedRecords(records) {
+    if (records.length) localStorage.setItem(MARKED_STORAGE_KEY, JSON.stringify(records));
+    else localStorage.removeItem(MARKED_STORAGE_KEY);
+  }
+
+  function markQuestion(question) {
+    if (!question || !question.id || isQuestionMarked(question.id)) return;
+    const records = loadMarkedRecords();
+    saveMarkedRecords([window.QuizCore.createMarkedRecord({ question })].concat(records));
+  }
+
+  function unmarkQuestion(questionId) {
+    saveMarkedRecords(window.QuizCore.removeRecordsForQuestion(loadMarkedRecords(), questionId));
+  }
+
+  function toggleQuestionMark(questionId) {
+    const question = questionForAction(questionId);
+    if (!question) return;
+    if (isQuestionMarked(question.id)) unmarkQuestion(question.id);
+    else markQuestion(question);
+    render();
   }
 
   function formatAnswer(answer, options) {
@@ -903,6 +1100,7 @@
     }
     if (action === 'history') setView('history');
     if (action === 'bank') setView('bank');
+    if (action === 'marked') setView('marked');
     if (action === 'changelog') setView('changelog');
     if (action === 'back') setView(state.mode ? 'quiz' : 'mode-select');
     if (action === 'mode-select') {
@@ -911,6 +1109,9 @@
     }
     if (action === 'new') state.mode === 'practice' ? reshufflePracticeQuestions() : startPaper();
     if (action === 'clear-history') clearWrongHistory();
+    if (action === 'toggle-mark') toggleQuestionMark(actionButton.dataset.questionId);
+    if (action === 'remove-wrong') removeWrongRecordsByQuestion(actionButton.dataset.questionId);
+    if (action === 'remove-current-wrong') removeWrongRecordsByQuestion(currentQuestion() && currentQuestion().id);
     if (action === 'practice-submit') submitPracticeAnswer();
     if (action === 'practice-next') drawNextPracticeQuestion();
     if (action === 'practice-skip') drawNextPracticeQuestion();
@@ -937,6 +1138,7 @@
   els.practiceModeBtn.addEventListener('click', () => setMode('practice'));
   els.newPaperBtn.addEventListener('click', () => (state.mode === 'practice' ? reshufflePracticeQuestions() : startPaper()));
   els.bankBtn.addEventListener('click', () => setView(state.view === 'bank' ? (state.mode ? 'quiz' : 'mode-select') : 'bank'));
+  els.markedBtn.addEventListener('click', () => setView(state.view === 'marked' ? (state.mode ? 'quiz' : 'mode-select') : 'marked'));
   els.changelogBtn.addEventListener('click', () => setView(state.view === 'changelog' ? (state.mode ? 'quiz' : 'mode-select') : 'changelog'));
   els.historyBtn.addEventListener('click', () => setView(state.view === 'history' ? 'quiz' : 'history'));
   els.submitBtn.addEventListener('click', submitPaper);

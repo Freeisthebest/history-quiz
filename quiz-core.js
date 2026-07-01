@@ -68,6 +68,35 @@
     };
   }
 
+  function createMarkedRecord(details) {
+    return {
+      questionId: details.question.id,
+      sourceNo: details.question.sourceNo || '',
+      type: details.question.type,
+      question: details.question.question,
+      options: Object.assign({}, details.question.options),
+      correctAnswer: normalizeAnswer(details.question.answer),
+      explanation: details.question.explanation || '',
+      markedAt: (details.now || new Date()).toISOString(),
+    };
+  }
+
+  function questionFromStoredRecord(record) {
+    return cloneQuestion({
+      id: record.questionId,
+      sourceNo: record.sourceNo || '',
+      type: record.type,
+      question: record.question,
+      options: Object.assign({}, record.options),
+      answer: normalizeAnswer(record.correctAnswer),
+      explanation: record.explanation || '',
+    });
+  }
+
+  function removeRecordsForQuestion(records, questionId) {
+    return (Array.isArray(records) ? records : []).filter((record) => record && record.questionId !== questionId);
+  }
+
   function answerFor(question, answers) {
     return normalizeAnswer((answers || {})[question.id] || []);
   }
@@ -97,15 +126,7 @@
   }
 
   function questionFromWrongRecord(record) {
-    return cloneQuestion({
-      id: record.questionId,
-      sourceNo: record.sourceNo || '',
-      type: record.type,
-      question: record.question,
-      options: Object.assign({}, record.options),
-      answer: normalizeAnswer(record.correctAnswer),
-      explanation: record.explanation || '',
-    });
+    return questionFromStoredRecord(record);
   }
 
   function buildWrongPracticeBank(records) {
@@ -182,8 +203,11 @@
     answersEqual,
     buildPaper,
     createWrongRecord,
+    createMarkedRecord,
     classifyPaper,
     createWrongRecordsForPaper,
+    questionFromStoredRecord,
+    removeRecordsForQuestion,
     buildWrongPracticeBank,
     buildPracticePool,
     buildPracticeQueue,
