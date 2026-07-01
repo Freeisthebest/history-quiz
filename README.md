@@ -1,4 +1,4 @@
-# 近代史选择题刷题网站
+# 天津大学近代史选择题刷题网站
 
 这是一个纯静态刷题网站，可以直接部署到 GitHub Pages、Cloudflare Pages、Netlify 或 Vercel。
 
