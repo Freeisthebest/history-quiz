@@ -1468,7 +1468,7 @@ window.QUESTION_BANK = {
         "D": "在文化上实行的是马克思主义指导下的新民主主义的文化"
       },
       "answer": [
-        "B"
+        "C"
       ],
       "explanation": ""
     },
