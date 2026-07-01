@@ -1260,7 +1260,7 @@ window.QUESTION_BANK = {
         "D": "撕毁停战协定"
       },
       "answer": [
-        "D"
+        "B"
       ],
       "explanation": ""
     },
