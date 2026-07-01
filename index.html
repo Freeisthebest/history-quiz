@@ -14,6 +14,7 @@
         <h1 id="pageTitle">近代史选择题刷题</h1>
       </div>
       <div class="top-actions">
+        <button id="homeBtn" class="button secondary" type="button">首页</button>
         <button id="examModeBtn" class="button secondary mode-button" type="button">模拟试卷</button>
         <button id="practiceModeBtn" class="button secondary mode-button" type="button">即时刷题</button>
         <button id="newPaperBtn" class="button secondary" type="button">重新组卷</button>
@@ -42,6 +43,11 @@
           <span class="mode-card-title">即时刷题</span>
           <span class="mode-card-desc">随机抽题，答完一道立刻显示答案，适合逐题练习。</span>
           <span id="modePracticeMeta" class="mode-card-meta"></span>
+        </button>
+        <button id="modeWrongEntry" class="mode-card wrong" type="button" data-start-mode="wrong-practice">
+          <span class="mode-card-title">错题重练</span>
+          <span class="mode-card-desc">从历史错题中去重抽题，答完一道立刻反馈，方便回头巩固。</span>
+          <span id="modeWrongMeta" class="mode-card-meta"></span>
         </button>
       </div>
       <div class="mode-select-actions">

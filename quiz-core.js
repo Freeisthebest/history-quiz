@@ -96,10 +96,70 @@
     }));
   }
 
+  function questionFromWrongRecord(record) {
+    return cloneQuestion({
+      id: record.questionId,
+      sourceNo: record.sourceNo || '',
+      type: record.type,
+      question: record.question,
+      options: Object.assign({}, record.options),
+      answer: normalizeAnswer(record.correctAnswer),
+      explanation: record.explanation || '',
+    });
+  }
+
+  function buildWrongPracticeBank(records) {
+    const bank = { single: [], multiple: [] };
+    const seen = new Set();
+    (Array.isArray(records) ? records : []).forEach((record) => {
+      if (!record || !record.questionId || seen.has(record.questionId)) return;
+      if (record.type !== 'single' && record.type !== 'multiple') return;
+      if (!record.question || !record.options || !record.correctAnswer) return;
+      const question = questionFromWrongRecord(record);
+      seen.add(record.questionId);
+      bank[question.type].push(question);
+    });
+    return bank;
+  }
+
   function buildPracticePool(bank) {
     const single = Array.isArray(bank && bank.single) ? bank.single : [];
     const multiple = Array.isArray(bank && bank.multiple) ? bank.multiple : [];
     return single.concat(multiple).map(cloneQuestion);
+  }
+
+  function attachPracticeQueueMeta(queue, roundTotal) {
+    Object.defineProperty(queue, 'roundTotal', {
+      value: roundTotal,
+      enumerable: false,
+      configurable: true,
+    });
+    return queue;
+  }
+
+  function buildPracticeQueue(bank, randomFn) {
+    const pool = buildPracticePool(bank);
+    if (!pool.length) {
+      throw new Error('题库为空，无法开始即时刷题');
+    }
+    return attachPracticeQueueMeta(shuffle(pool, randomFn), pool.length);
+  }
+
+  function takePracticeQuestion(queue, bank, randomFn) {
+    const sourceQueue = Array.isArray(queue) ? queue : [];
+    let nextQueue = sourceQueue.slice();
+    let roundTotal = Number(sourceQueue.roundTotal) || nextQueue.length;
+    if (!nextQueue.length) {
+      nextQueue = buildPracticeQueue(bank, randomFn);
+      roundTotal = nextQueue.roundTotal;
+    }
+    const question = cloneQuestion(nextQueue.shift());
+    return {
+      question,
+      queue: attachPracticeQueueMeta(nextQueue, roundTotal),
+      roundTotal,
+      roundIndex: roundTotal - nextQueue.length,
+    };
   }
 
   function drawPracticeQuestion(bank, randomFn) {
@@ -124,7 +184,10 @@
     createWrongRecord,
     classifyPaper,
     createWrongRecordsForPaper,
+    buildWrongPracticeBank,
     buildPracticePool,
+    buildPracticeQueue,
+    takePracticeQuestion,
     drawPracticeQuestion,
     classifyAnswer,
   };

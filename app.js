@@ -12,6 +12,10 @@
     paperId: '',
     view: 'mode-select',
     practiceQuestion: null,
+    practiceSource: 'all',
+    practiceQueue: [],
+    practiceRoundTotal: 0,
+    practiceRoundIndex: 0,
     practiceAnswer: [],
     practiceSubmitted: false,
     practiceResultSaved: false,
@@ -28,8 +32,10 @@
     modeSelectStats: document.getElementById('modeSelectStats'),
     modeExamEntry: document.getElementById('modeExamEntry'),
     modePracticeEntry: document.getElementById('modePracticeEntry'),
+    modeWrongEntry: document.getElementById('modeWrongEntry'),
     modeExamMeta: document.getElementById('modeExamMeta'),
     modePracticeMeta: document.getElementById('modePracticeMeta'),
+    modeWrongMeta: document.getElementById('modeWrongMeta'),
     examLayout: document.getElementById('examLayout'),
     errorBox: document.getElementById('errorBox'),
     summaryBar: document.getElementById('summaryBar'),
@@ -41,6 +47,7 @@
     answerCard: document.getElementById('answerCard'),
     sheetTitle: document.getElementById('sheetTitle'),
     sheetStats: document.getElementById('sheetStats'),
+    homeBtn: document.getElementById('homeBtn'),
     examModeBtn: document.getElementById('examModeBtn'),
     practiceModeBtn: document.getElementById('practiceModeBtn'),
     newPaperBtn: document.getElementById('newPaperBtn'),
@@ -68,6 +75,32 @@
     };
   }
 
+  function getWrongPracticeBank() {
+    return window.QuizCore.buildWrongPracticeBank(loadWrongRecords());
+  }
+
+  function getWrongPracticeCount() {
+    const bank = getWrongPracticeBank();
+    return bank.single.length + bank.multiple.length;
+  }
+
+  function isWrongPractice() {
+    return state.mode === 'practice' && state.practiceSource === 'wrong';
+  }
+
+  function practiceTitle() {
+    return isWrongPractice() ? '错题重练' : '即时刷题';
+  }
+
+  function returnTargetName() {
+    if (!state.mode) return '选择';
+    return state.mode === 'practice' ? practiceTitle() : '试卷';
+  }
+
+  function currentPracticeBank() {
+    return state.practiceSource === 'wrong' ? getWrongPracticeBank() : window.QUESTION_BANK;
+  }
+
   function startPaper() {
     clearError();
     try {
@@ -85,21 +118,43 @@
     }
   }
 
-  function startPracticeSession() {
+  function startPracticeSession(source) {
+    state.practiceSource = source || 'all';
     state.practiceStats = { done: 0, correct: 0, wrong: 0 };
+    state.practiceQueue = [];
+    state.practiceRoundTotal = 0;
+    state.practiceRoundIndex = 0;
     drawNextPracticeQuestion();
   }
 
   function drawNextPracticeQuestion() {
     clearError();
     try {
+      const draw = window.QuizCore.takePracticeQuestion(state.practiceQueue, currentPracticeBank());
       state.mode = 'practice';
-      state.practiceQuestion = window.QuizCore.drawPracticeQuestion(window.QUESTION_BANK);
+      state.practiceQuestion = draw.question;
+      state.practiceQueue = draw.queue;
+      state.practiceRoundTotal = draw.roundTotal;
+      state.practiceRoundIndex = draw.roundIndex;
       state.practiceAnswer = [];
       state.practiceSubmitted = false;
       state.practiceResultSaved = false;
       state.view = 'quiz';
       render();
+    } catch (error) {
+      showError(error.message);
+      renderEmpty();
+    }
+  }
+
+  function reshufflePracticeQuestions() {
+    clearError();
+    try {
+      state.mode = 'practice';
+      state.practiceQueue = window.QuizCore.buildPracticeQueue(currentPracticeBank());
+      state.practiceRoundTotal = state.practiceQueue.roundTotal || state.practiceQueue.length;
+      state.practiceRoundIndex = 0;
+      drawNextPracticeQuestion();
     } catch (error) {
       showError(error.message);
       renderEmpty();
@@ -152,9 +207,14 @@
       }
       return;
     }
-    if (!state.practiceQuestion) startPracticeSession();
+    if (mode === 'wrong-practice') {
+      startPracticeSession('wrong');
+      return;
+    }
+    if (!state.practiceQuestion || state.practiceSource !== 'all') startPracticeSession('all');
     else {
       state.mode = 'practice';
+      state.practiceSource = 'all';
       state.view = 'quiz';
       render();
     }
@@ -224,8 +284,9 @@
         : state.view === 'changelog'
         ? '更新日志'
         : state.mode === 'practice'
-        ? '即时刷题'
+        ? practiceTitle()
         : '模拟试卷刷题';
+    els.homeBtn.classList.toggle('hidden', isModeSelect);
     els.examModeBtn.classList.toggle('hidden', isModeSelect);
     els.practiceModeBtn.classList.toggle('hidden', isModeSelect);
     els.newPaperBtn.classList.toggle('hidden', isModeSelect || !hasMode || state.view === 'history' || state.view === 'bank' || state.view === 'changelog');
@@ -233,22 +294,26 @@
     els.changelogBtn.classList.toggle('hidden', false);
     els.historyBtn.classList.toggle('hidden', isModeSelect);
     els.examModeBtn.classList.toggle('active', state.mode === 'exam');
-    els.practiceModeBtn.classList.toggle('active', state.mode === 'practice');
-    els.newPaperBtn.textContent = state.mode === 'practice' ? '下一题' : '重新组卷';
+    els.practiceModeBtn.classList.toggle('active', state.mode === 'practice' && !isWrongPractice());
+    els.newPaperBtn.textContent = state.mode === 'practice' ? '重新洗题' : '重新组卷';
     els.submitBtn.classList.toggle('hidden', isModeSelect || !hasMode || state.mode === 'practice' || state.view === 'history' || state.view === 'bank' || state.view === 'changelog');
   }
 
   function renderModeSelect() {
     const counts = getBankCounts();
+    const wrongCount = getWrongPracticeCount();
     const examReady = counts.single >= SINGLE_COUNT && counts.multiple >= MULTIPLE_COUNT;
     const practiceReady = counts.single + counts.multiple > 0;
-    els.modeSelectStats.textContent = `题库现有：单选 ${counts.single} 道，多选 ${counts.multiple} 道`;
+    els.modeSelectStats.textContent = `题库现有：单选 ${counts.single} 道，多选 ${counts.multiple} 道；历史错题 ${wrongCount} 道`;
     els.modeExamMeta.textContent = examReady ? '可开始模拟' : `需要至少 ${SINGLE_COUNT} 道单选和 ${MULTIPLE_COUNT} 道多选`;
     els.modePracticeMeta.textContent = practiceReady ? '可开始练习' : '题库为空';
+    els.modeWrongMeta.textContent = wrongCount ? `可重练 ${wrongCount} 道` : '暂无错题';
     els.modeExamEntry.disabled = !examReady;
     els.modePracticeEntry.disabled = !practiceReady;
+    els.modeWrongEntry.disabled = wrongCount === 0;
     els.modeExamEntry.classList.toggle('disabled', !examReady);
     els.modePracticeEntry.classList.toggle('disabled', !practiceReady);
+    els.modeWrongEntry.classList.toggle('disabled', wrongCount === 0);
   }
 
   function renderSummary() {
@@ -277,16 +342,22 @@
     }
     if (state.mode === 'practice') {
       const q = state.practiceQuestion;
+      const wrongCount = getWrongPracticeCount();
+      const sourceText = isWrongPractice()
+        ? `错题：${wrongCount}`
+        : `题库：单选 ${counts.single}，多选 ${counts.multiple}`;
       els.summaryBar.innerHTML = [
-        `模式：<strong>即时刷题</strong>`,
+        `模式：<strong>${practiceTitle()}</strong>`,
         `已练：<strong>${state.practiceStats.done}</strong>`,
         `答对：<strong>${state.practiceStats.correct}</strong>`,
         `答错：<strong>${state.practiceStats.wrong}</strong>`,
-        `题库：单选 ${counts.single}，多选 ${counts.multiple}`,
+        `本轮：<strong>${state.practiceRoundIndex}</strong>/${state.practiceRoundTotal || counts.single + counts.multiple}`,
+        `剩余：<strong>${state.practiceQueue.length}</strong>`,
+        sourceText,
         q ? `当前：${q.type === 'multiple' ? '多选题' : '单选题'}` : '当前：暂无题目',
       ].join('<span class="sep">|</span>');
-      els.sheetStats.textContent = `${state.practiceStats.correct}/${state.practiceStats.done}`;
-      els.historyBtn.textContent = state.view === 'history' ? '返回刷题' : '历史错题';
+      els.sheetStats.textContent = `${state.practiceRoundIndex}/${state.practiceRoundTotal || counts.single + counts.multiple}`;
+      els.historyBtn.textContent = state.view === 'history' ? `返回${practiceTitle()}` : '历史错题';
       return;
     }
 
@@ -338,14 +409,16 @@
     ` : '';
     const actions = state.practiceSubmitted ? `
       <button class="button primary" type="button" data-action="practice-next">下一题</button>
+      <button class="button ghost" type="button" data-action="practice-reshuffle">重新洗题</button>
       <button class="button light" type="button" data-action="history">查看历史错题</button>
     ` : `
       ${isMultiple ? '<button class="button primary" type="button" data-action="practice-submit">提交本题</button>' : ''}
       <button class="button ghost" type="button" data-action="practice-skip">换一题</button>
+      <button class="button ghost" type="button" data-action="practice-reshuffle">重新洗题</button>
       <button class="button ghost" type="button" data-action="clear">清空本题</button>
     `;
     els.questionPanel.innerHTML = renderQuestionContent(question, {
-      numberText: '即时刷题',
+      numberText: state.practiceRoundTotal ? `${practiceTitle()} ${state.practiceRoundIndex}/${state.practiceRoundTotal}` : practiceTitle(),
       submitted: state.practiceSubmitted,
       hint: isMultiple ? '多选题：选完后点击“提交本题”' : '单选题：选择后立即判定',
       actions,
@@ -410,11 +483,13 @@
       return;
     }
     if (state.mode === 'practice') {
-      els.sheetTitle.textContent = '刷题统计';
+      els.sheetTitle.textContent = `${practiceTitle()}统计`;
       els.answerCard.innerHTML = `
         <div class="practice-stat"><span>已练</span><strong>${state.practiceStats.done}</strong></div>
         <div class="practice-stat"><span>答对</span><strong>${state.practiceStats.correct}</strong></div>
         <div class="practice-stat"><span>答错</span><strong>${state.practiceStats.wrong}</strong></div>
+        <div class="practice-stat"><span>本轮</span><strong>${state.practiceRoundIndex}</strong></div>
+        <div class="practice-stat"><span>剩余</span><strong>${state.practiceQueue.length}</strong></div>
       `;
       return;
     }
@@ -470,7 +545,7 @@
         <span class="muted">共 ${records.length} 条记录</span>
       </div>
       <div class="question-actions">
-        <button class="button light" type="button" data-action="back">返回${state.mode ? (state.mode === 'practice' ? '刷题' : '试卷') : '选择'}</button>
+        <button class="button light" type="button" data-action="back">返回${returnTargetName()}</button>
         <button class="button ghost" type="button" data-action="clear-history">清空错题记录</button>
       </div>
       <div class="history-list">${records.map(renderHistoryCard).join('') || '<p>还没有历史错题。</p>'}</div>
@@ -519,11 +594,37 @@
         <button class="button light active-filter" type="button" data-bank-filter="all">全部</button>
         <button class="button light" type="button" data-bank-filter="single">单选</button>
         <button class="button light" type="button" data-bank-filter="multiple">多选</button>
-        <button class="button ghost" type="button" data-action="back">返回${state.mode ? (state.mode === 'practice' ? '刷题' : '试卷') : '选择'}</button>
+        <button class="button ghost" type="button" data-action="back">返回${returnTargetName()}</button>
+      </div>
+      <div class="bank-search-row">
+        <input class="bank-search-input" type="search" data-bank-search placeholder="搜索题干、选项或答案" autocomplete="off">
+        <span class="muted" data-bank-search-meta>当前显示 ${questions.length} 道</span>
       </div>
       <p class="muted">本次有作答记录 ${answered} 道；未抽到的题会显示为“本次未抽到”。</p>
       <div class="bank-list">${questions.map(renderBankCard).join('')}</div>
     `;
+  }
+
+  function normalizeSearchText(value) {
+    return String(value || '').normalize('NFKC').toLowerCase().replace(/\s+/g, '');
+  }
+
+  function applyBankFilters() {
+    const activeFilter = document.querySelector('[data-bank-filter].active-filter');
+    const filter = activeFilter ? activeFilter.dataset.bankFilter : 'all';
+    const searchInput = document.querySelector('[data-bank-search]');
+    const query = normalizeSearchText(searchInput ? searchInput.value : '');
+    const cards = Array.from(document.querySelectorAll('[data-bank-type]'));
+    let visibleCount = 0;
+    cards.forEach((card) => {
+      const typeMatches = filter === 'all' || card.dataset.bankType === filter;
+      const textMatches = !query || normalizeSearchText(card.textContent).includes(query);
+      const isVisible = typeMatches && textMatches;
+      card.classList.toggle('hidden', !isVisible);
+      if (isVisible) visibleCount += 1;
+    });
+    const meta = document.querySelector('[data-bank-search-meta]');
+    if (meta) meta.textContent = `当前显示 ${visibleCount} 道`;
   }
 
   async function renderChangelog() {
@@ -546,7 +647,7 @@
           <span class="muted">内容来自 CHANGELOG.md</span>
         </div>
         <div class="question-actions">
-          <button class="button ghost" type="button" data-action="back">返回${state.mode ? (state.mode === 'practice' ? '刷题' : '试卷') : '选择'}</button>
+          <button class="button ghost" type="button" data-action="back">返回${returnTargetName()}</button>
         </div>
         ${renderChangelogMarkdown(markdown)}
       `;
@@ -559,7 +660,7 @@
         </div>
         <p class="muted">当前浏览器没有读取本地 CHANGELOG.md 的权限。部署到网站或通过本地服务器打开后会自动同步显示。</p>
         <div class="question-actions">
-          <button class="button ghost" type="button" data-action="back">返回${state.mode ? (state.mode === 'practice' ? '刷题' : '试卷') : '选择'}</button>
+          <button class="button ghost" type="button" data-action="back">返回${returnTargetName()}</button>
         </div>
       `;
     }
@@ -701,11 +802,13 @@
     if (status === 'correct') state.practiceStats.correct += 1;
     if (status === 'wrong') {
       state.practiceStats.wrong += 1;
-      saveWrongRecords([window.QuizCore.createWrongRecord({
-        paperId: `practice-${Date.now()}`,
-        question: state.practiceQuestion,
-        userAnswer: state.practiceAnswer,
-      })]);
+      if (!isWrongPractice()) {
+        saveWrongRecords([window.QuizCore.createWrongRecord({
+          paperId: `practice-${Date.now()}`,
+          question: state.practiceQuestion,
+          userAnswer: state.practiceAnswer,
+        })]);
+      }
     }
     state.practiceResultSaved = true;
   }
@@ -806,11 +909,12 @@
       state.view = 'mode-select';
       render();
     }
-    if (action === 'new') state.mode === 'practice' ? drawNextPracticeQuestion() : startPaper();
+    if (action === 'new') state.mode === 'practice' ? reshufflePracticeQuestions() : startPaper();
     if (action === 'clear-history') clearWrongHistory();
     if (action === 'practice-submit') submitPracticeAnswer();
     if (action === 'practice-next') drawNextPracticeQuestion();
     if (action === 'practice-skip') drawNextPracticeQuestion();
+    if (action === 'practice-reshuffle') reshufflePracticeQuestions();
   });
 
   document.addEventListener('click', (event) => {
@@ -820,14 +924,18 @@
     document.querySelectorAll('[data-bank-filter]').forEach((button) => {
       button.classList.toggle('active-filter', button.dataset.bankFilter === filter);
     });
-    document.querySelectorAll('[data-bank-type]').forEach((card) => {
-      card.classList.toggle('hidden', filter !== 'all' && card.dataset.bankType !== filter);
-    });
+    applyBankFilters();
+  });
+
+  document.addEventListener('input', (event) => {
+    if (!event.target.matches('[data-bank-search]')) return;
+    applyBankFilters();
   });
 
   els.examModeBtn.addEventListener('click', () => setMode('exam'));
+  els.homeBtn.addEventListener('click', () => setView('mode-select'));
   els.practiceModeBtn.addEventListener('click', () => setMode('practice'));
-  els.newPaperBtn.addEventListener('click', () => (state.mode === 'practice' ? drawNextPracticeQuestion() : startPaper()));
+  els.newPaperBtn.addEventListener('click', () => (state.mode === 'practice' ? reshufflePracticeQuestions() : startPaper()));
   els.bankBtn.addEventListener('click', () => setView(state.view === 'bank' ? (state.mode ? 'quiz' : 'mode-select') : 'bank'));
   els.changelogBtn.addEventListener('click', () => setView(state.view === 'changelog' ? (state.mode ? 'quiz' : 'mode-select') : 'changelog'));
   els.historyBtn.addEventListener('click', () => setView(state.view === 'history' ? 'quiz' : 'history'));
