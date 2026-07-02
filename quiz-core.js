@@ -93,6 +93,28 @@
     });
   }
 
+  function findQuestionInBank(bank, questionId) {
+    const single = Array.isArray(bank && bank.single) ? bank.single : [];
+    const multiple = Array.isArray(bank && bank.multiple) ? bank.multiple : [];
+    return single.concat(multiple).find((question) => question && question.id === questionId) || null;
+  }
+
+  function syncStoredRecordsWithBank(records, bank) {
+    return (Array.isArray(records) ? records : []).map((record) => {
+      if (!record || !record.questionId) return record;
+      const latestQuestion = findQuestionInBank(bank, record.questionId);
+      if (!latestQuestion) return record;
+      return Object.assign({}, record, {
+        sourceNo: latestQuestion.sourceNo || record.sourceNo || '',
+        type: latestQuestion.type,
+        question: latestQuestion.question,
+        options: Object.assign({}, latestQuestion.options),
+        correctAnswer: normalizeAnswer(latestQuestion.answer),
+        explanation: latestQuestion.explanation || '',
+      });
+    });
+  }
+
   function removeRecordsForQuestion(records, questionId) {
     return (Array.isArray(records) ? records : []).filter((record) => record && record.questionId !== questionId);
   }
@@ -207,6 +229,7 @@
     classifyPaper,
     createWrongRecordsForPaper,
     questionFromStoredRecord,
+    syncStoredRecordsWithBank,
     removeRecordsForQuestion,
     buildWrongPracticeBank,
     buildPracticePool,

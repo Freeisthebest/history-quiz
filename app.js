@@ -994,7 +994,7 @@
   function loadWrongRecords() {
     try {
       const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      return Array.isArray(parsed) ? parsed : [];
+      return window.QuizCore.syncStoredRecordsWithBank(Array.isArray(parsed) ? parsed : [], window.QUESTION_BANK);
     } catch (error) {
       return [];
     }
