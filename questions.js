@@ -524,7 +524,7 @@ window.QUESTION_BANK = {
         "D": "使民主共和观念深入人心"
       },
       "answer": [
-        "B"
+        "A"
       ],
       "explanation": ""
     },
